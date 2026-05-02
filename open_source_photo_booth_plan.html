@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Open Source Photo Booth — Plan de Proyecto</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --accent4: #f59e0b;
+    --accent5: #ef4444;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --glow: rgba(0,229,255,0.15);
+    --glow2: rgba(124,58,237,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRAIN OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    padding: 80px 60px 60px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -120px; left: -80px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: 20px; right: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(0,229,255,0.3);
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 span.cyan { color: var(--accent); }
+  .hero h1 span.purple { color: #a78bfa; }
+
+  .hero-sub {
+    font-size: 17px;
+    color: var(--text-dim);
+    max-width: 620px;
+    font-weight: 300;
+    margin-bottom: 40px;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .meta-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .meta-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  /* MAIN LAYOUT */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 60px;
+  }
+
+  /* SECTION */
+  section {
+    padding: 64px 60px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .section-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 32px;
+    line-height: 1.2;
+  }
+
+  /* STACK GRID */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stack-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .stack-card:hover { border-color: rgba(0,229,255,0.4); }
+
+  .stack-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stack-card.cyan::before { background: var(--accent); }
+  .stack-card.purple::before { background: var(--accent2); }
+  .stack-card.green::before { background: var(--accent3); }
+  .stack-card.amber::before { background: var(--accent4); }
+  .stack-card.red::before { background: var(--accent5); }
+
+  .stack-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+
+  .stack-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .stack-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* FILE TREE */
+  .file-tree {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+  }
+
+  .file-tree-header {
+    background: var(--surface2);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #ef4444; }
+  .dot.y { background: #f59e0b; }
+  .dot.g { background: #10b981; }
+
+  .file-tree-body { padding: 20px 24px; }
+
+  .tree-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    color: var(--text-dim);
+  }
+
+  .tree-line.dir { color: var(--accent); font-weight: 700; }
+  .tree-line.file { color: var(--text); }
+  .tree-line.comment { color: var(--text-muted); font-style: italic; }
+
+  .indent1 { padding-left: 20px; }
+  .indent2 { padding-left: 40px; }
+  .indent3 { padding-left: 60px; }
+
+  .file-badge {
+    font-size: 10px;
+    padding: 1px 7px;
+    border-radius: 3px;
+    margin-left: auto;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-py { background: rgba(0,229,255,0.12); color: var(--accent); border: 1px solid rgba(0,229,255,0.2); }
+  .badge-toml { background: rgba(124,58,237,0.12); color: #a78bfa; border: 1px solid rgba(124,58,237,0.2); }
+  .badge-txt { background: rgba(100,116,139,0.15); color: var(--text-muted); border: 1px solid rgba(100,116,139,0.2); }
+  .badge-png { background: rgba(16,185,129,0.12); color: var(--accent3); border: 1px solid rgba(16,185,129,0.2); }
+  .badge-md { background: rgba(245,158,11,0.12); color: var(--accent4); border: 1px solid rgba(245,158,11,0.2); }
+
+  /* PHASES */
+  .phases {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .phase {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0;
+    position: relative;
+  }
+
+  .phase-left {
+    padding: 28px 32px 28px 0;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .phase-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+  }
+
+  .phase-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    text-align: right;
+    line-height: 1.3;
+  }
+
+  .phase-duration {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+
+  .phase-right {
+    padding: 28px 0 28px 32px;
+  }
+
+  .phase-tasks {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .phase-tasks li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  .task-bullet {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+
+  /* CODE BLOCKS */
+  .code-block {
+    background: #070c14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+
+  .code-header {
+    background: var(--surface2);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+
+  .code-filename { color: var(--accent); }
+  .code-lang { color: var(--text-muted); font-size: 11px; }
+
+  pre {
+    padding: 24px;
+    overflow-x: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.75;
+  }
+
+  .kw { color: #c792ea; }
+  .fn { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .cm { color: #546e7a; font-style: italic; }
+  .num { color: #f78c6c; }
+  .cls { color: #ffcb6b; }
+  .op { color: var(--accent); }
+  .var { color: #eeffff; }
+  .deco { color: #89ddff; }
+
+  /* REQUIREMENTS TABLE */
+  .req-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+
+  .req-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .req-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(30,45,69,0.6);
+    vertical-align: top;
+    color: var(--text-dim);
+  }
+
+  .req-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .req-table td:first-child {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .priority {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .p-high { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+  .p-med  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+  .p-low  { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+
+  /* ARCH DIAGRAM */
+  .arch-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+
+  .arch-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .arch-box {
+    border: 1px solid;
+    border-radius: 6px;
+    padding: 10px 18px;
+    text-align: center;
+    min-width: 130px;
+  }
+
+  .arch-box.main { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.06); }
+  .arch-box.mod { border-color: var(--accent2); color: #a78bfa; background: rgba(124,58,237,0.07); }
+  .arch-box.ext { border-color: var(--accent3); color: var(--accent3); background: rgba(16,185,129,0.06); }
+  .arch-box.data { border-color: var(--accent4); color: var(--accent4); background: rgba(245,158,11,0.07); }
+
+  .arch-box .box-title { font-weight: 700; font-size: 12px; }
+  .arch-box .box-sub { font-size: 10px; opacity: 0.7; margin-top: 3px; }
+
+  .arch-arrow { color: var(--text-muted); font-size: 18px; }
+
+  /* GESTURE TABLE */
+  .gesture-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .gesture-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .gesture-card:hover { transform: translateY(-2px); border-color: rgba(0,229,255,0.3); }
+
+  .gesture-emoji { font-size: 36px; margin-bottom: 10px; }
+  .gesture-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .gesture-desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+
+  /* COLLISION SECTION */
+  .collision-visual {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 30px;
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .collision-diagram {
+    flex: 0 0 260px;
+  }
+
+  .roi-box {
+    border: 2px dashed rgba(0,229,255,0.5);
+    border-radius: 6px;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+    background: rgba(0,229,255,0.04);
+    margin-bottom: 12px;
+  }
+
+  .roi-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .finger-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent4);
+    display: inline-block;
+    margin: 8px;
+    box-shadow: 0 0 8px rgba(245,158,11,0.6);
+  }
+
+  .frame-counter {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+
+  .frame-pip {
+    width: 18px; height: 6px;
+    border-radius: 3px;
+  }
+
+  .frame-pip.filled { background: var(--accent3); }
+  .frame-pip.empty { background: var(--surface2); border: 1px solid var(--border); }
+
+  .collision-logic { flex: 1; }
+
+  /* CALLOUT */
+  .callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    font-size: 13.5px;
+  }
+
+  .callout.info { background: rgba(0,229,255,0.07); border: 1px solid rgba(0,229,255,0.2); }
+  .callout.warn { background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); }
+  .callout.tip  { background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.2); }
+
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+  .callout-text { color: var(--text-dim); line-height: 1.6; }
+  .callout-text strong { color: var(--text); }
+
+  /* FOOTER */
+  footer {
+    padding: 40px 60px;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* TIMELINE */
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px; top: 8px; bottom: 8px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .tl-item {
+    position: relative;
+    margin-bottom: 28px;
+  }
+
+  .tl-dot {
+    position: absolute;
+    left: -32px;
+    top: 5px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid;
+    background: var(--bg);
+  }
+
+  .tl-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  .tl-body {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .tl-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .tl-file {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--accent);
+  }
+
+  /* STICKER ROW */
+  .sticker-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+
+  .sticker-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-dim);
+  }
+
+  .sticker-pill .emoji { font-size: 16px; }
+
+  /* SEPARATOR */
+  hr.section-sep {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* responsive */
+  @media (max-width: 640px) {
+    .hero, section { padding: 48px 24px; }
+    .phase { grid-template-columns: 1fr; }
+    .phase-left { border-right: none; border-bottom: 1px solid var(--border); align-items: flex-start; padding: 20px 0 16px; }
+    .phase-right { padding: 16px 0 20px; }
+    .collision-visual { flex-direction: column; }
+    .collision-diagram { flex: unset; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════ HERO ═══════ -->
+<header class="hero">
+  <div class="hero-tag">📋 Plan de Proyecto · v2.0</div>
+  <h1>Open Source<br><span class="cyan">Photo Booth</span> <span class="purple">⊕</span></h1>
+  <p class="hero-sub">
+    Aplicación interactiva de escritorio en Python que permite capturar fotos con stickers de Software Libre, controlada mediante gestos de mano detectados con visión artificial en tiempo real.
+  </p>
+  <div class="meta-row">
+    <div class="meta-item">
+      <span class="meta-label">Duración Estimada</span>
+      <span class="meta-value">3–4 Semanas</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Lenguaje</span>
+      <span class="meta-value">Python 3.11+</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Entorno</span>
+      <span class="meta-value">uv</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Paradigma</span>
+      <span class="meta-value">Modular · Desktop</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Licencia</span>
+      <span class="meta-value">MIT / Open Source</span>
+    </div>
+  </div>
+</header>
+
+
+<!-- ═══════ 1. STACK ═══════ -->
+<section>
+  <div class="section-eyebrow">01 — Stack Tecnológico</div>
+  <h2 class="section-title">Dependencias y Herramientas</h2>
+
+  <div class="stack-grid">
+    <div class="stack-card cyan">
+      <div class="stack-icon">🐍</div>
+      <div class="stack-name">Python 3.11+</div>
+      <div class="stack-desc">Motor del proyecto. Requiere match-case, tomllib nativo y mejoras de rendimiento del intérprete.</div>
+    </div>
+    <div class="stack-card purple">
+      <div class="stack-icon">⚡</div>
+      <div class="stack-name">uv</div>
+      <div class="stack-desc">Gestor de entornos y paquetes ultrarrápido. Reemplaza pip + venv con resolución determinista.</div>
+    </div>
+    <div class="stack-card green">
+      <div class="stack-icon">📷</div>
+      <div class="stack-name">OpenCV</div>
+      <div class="stack-desc">opencv-python. Captura de video, manipulación de frames BGR y renderizado de overlays.</div>
+    </div>
+    <div class="stack-card amber">
+      <div class="stack-icon">🤚</div>
+      <div class="stack-name">MediaPipe</div>
+      <div class="stack-desc">Detección de manos y landmarks en tiempo real. 21 puntos por mano a &gt;30 FPS.</div>
+    </div>
+    <div class="stack-card red">
+      <div class="stack-icon">🔢</div>
+      <div class="stack-name">NumPy</div>
+      <div class="stack-desc">Operaciones vectorizadas para alpha blending eficiente sobre arrays de píxeles.</div>
+    </div>
+    <div class="stack-card cyan">
+      <div class="stack-icon">🖼</div>
+      <div class="stack-name">Pillow</div>
+      <div class="stack-desc">Carga robusta de PNGs con canal alpha y conversión de espacio de color si se requiere.</div>
+    </div>
+    <div class="stack-card green">
+      <div class="stack-icon">🎨</div>
+      <div class="stack-name">cairosvg</div>
+      <div class="stack-desc">Rasterización SVG → PNG en memoria. Permite cargar logos vectoriales directamente sin conversión previa.</div>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <span class="callout-icon">💡</span>
+    <div class="callout-text">
+      <strong>Gestión de versiones:</strong> Se crea un archivo <code>.python-version</code> en la raíz con el contenido <code>3.11</code>. uv lee este archivo automáticamente y resuelve el entorno sin intervención manual, garantizando reproducibilidad en cualquier máquina.
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════ 2. ESTRUCTURA ═══════ -->
+<section>
+  <div class="section-eyebrow">02 — Arquitectura de Archivos</div>
+  <h2 class="section-title">Estructura del Proyecto</h2>
+
+  <div class="file-tree">
+    <div class="file-tree-header">
+      <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      <span style="margin-left:8px; font-family:'Space Mono',monospace; font-size:12px; color:var(--text-muted)">open-source-photo-booth/</span>
+    </div>
+    <div class="file-tree-body">
+      <div class="tree-line dir">📁 open-source-photo-booth/</div>
+
+      <div class="tree-line file indent1">📄 .python-version <span class="file-badge badge-txt">TXT</span></div>
+      <div class="tree-line comment indent1">── fija Python 3.11 para uv</div>
+
+      <div class="tree-line file indent1">📄 pyproject.toml <span class="file-badge badge-toml">TOML</span></div>
+      <div class="tree-line comment indent1">── dependencias, metadata y scripts de uv</div>
+
+      <div class="tree-line file indent1">📄 README.md <span class="file-badge badge-md">MD</span></div>
+
+      <div class="tree-line dir indent1">📁 src/</div>
+
+      <div class="tree-line file indent2">📄 app.py <span class="file-badge badge-py">PY</span></div>
+      <div class="tree-line comment indent2">── bucle principal, event loop de OpenCV</div>
+
+      <div class="tree-line file indent2">📄 vision_engine.py <span class="file-badge badge-py">PY</span></div>
+      <div class="tree-line comment indent2">── MediaPipe, alpha blending, detección de gestos</div>
+
+      <div class="tree-line file indent2">📄 ui_manager.py <span class="file-badge badge-py">PY</span></div>
+      <div class="tree-line comment indent2">── stickers, botones, colisiones, franja UI</div>
+
+      <div class="tree-line file indent2">📄 config.py <span class="file-badge badge-py">PY</span></div>
+      <div class="tree-line comment indent2">── constantes: FPS, resolución, delay frames</div>
+
+      <div class="tree-line dir indent1">📁 assets/</div>
+      <div class="tree-line dir indent2">📁 stickers/</div>
+      <div class="tree-line file indent3">🐧 archlinux.svg <span class="file-badge badge-png">SVG</span></div>
+      <div class="tree-line file indent3">🦊 firefoxbrowser.svg <span class="file-badge badge-png">SVG</span></div>
+      <div class="tree-line file indent3">🐙 git.svg <span class="file-badge badge-png">SVG</span></div>
+      <div class="tree-line file indent3">🐧 gnome.svg <span class="file-badge badge-png">SVG</span></div>
+      <div class="tree-line file indent3">🦬 gnu.svg <span class="file-badge badge-png">SVG</span></div>
+      <div class="tree-line file indent3">🐧 linux.svg <span class="file-badge badge-png">SVG</span></div>
+      <div class="tree-line file indent3">🐍 python.svg <span class="file-badge badge-png">SVG</span></div>
+      <div class="tree-line file indent3">🦀 rust.svg <span class="file-badge badge-png">SVG</span></div>
+      <div class="tree-line file indent3">🟠 ubuntu.svg <span class="file-badge badge-png">SVG</span></div>
+      <div class="tree-line dir indent2">📁 footer/</div>
+      <div class="tree-line file indent3">🖼 kokoa_logo.png <span class="file-badge badge-png">PNG</span></div>
+      <div class="tree-line comment indent3">── marca de agua · esquina inferior derecha</div>
+
+      <div class="tree-line dir indent1">📁 captures/</div>
+      <div class="tree-line comment indent1">── fotos guardadas (generado en runtime)</div>
+
+      <div class="tree-line dir indent1">📁 tests/</div>
+      <div class="tree-line file indent2">📄 conftest.py <span class="file-badge badge-py">PY</span></div>
+      <div class="tree-line comment indent2">── añade src/ a sys.path para los imports</div>
+      <div class="tree-line file indent2">📄 test_vision_engine.py <span class="file-badge badge-py">PY</span></div>
+      <div class="tree-line file indent2">📄 test_ui_manager.py <span class="file-badge badge-py">PY</span></div>
+    </div>
+  </div>
+
+  <div class="sticker-row" style="margin-top:24px;">
+    <div><strong style="font-family:'Syne',sans-serif; font-size:14px;">Stickers Open Source incluidos:</strong></div>
+  </div>
+  <div class="sticker-row">
+    <div class="sticker-pill"><span class="emoji">🐧</span> Arch Linux</div>
+    <div class="sticker-pill"><span class="emoji">🦊</span> Firefox</div>
+    <div class="sticker-pill"><span class="emoji">🐙</span> Git</div>
+    <div class="sticker-pill"><span class="emoji">🖥</span> GNOME</div>
+    <div class="sticker-pill"><span class="emoji">🦬</span> GNU</div>
+    <div class="sticker-pill"><span class="emoji">🐧</span> Linux</div>
+    <div class="sticker-pill"><span class="emoji">🐍</span> Python</div>
+    <div class="sticker-pill"><span class="emoji">🦀</span> Rust</div>
+    <div class="sticker-pill"><span class="emoji">🟠</span> Ubuntu</div>
+  </div>
+</section>
+
+
+<!-- ═══════ 3. ARQUITECTURA ═══════ -->
+<section>
+  <div class="section-eyebrow">03 — Diseño de Módulos</div>
+  <h2 class="section-title">Arquitectura y Flujo de Datos</h2>
+
+  <div class="arch-diagram">
+    <div class="arch-row">
+      <div class="arch-box ext">
+        <div class="box-title">📷 Cámara</div>
+        <div class="box-sub">cv2.VideoCapture</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-box main">
+        <div class="box-title">app.py</div>
+        <div class="box-sub">Main Loop · Event Handler</div>
+      </div>
+    </div>
+    <div class="arch-arrow" style="font-size:24px; transform:rotate(90deg);">→</div>
+    <div class="arch-row">
+      <div class="arch-box mod">
+        <div class="box-title">vision_engine.py</div>
+        <div class="box-sub">MediaPipe · Blending · Gestos</div>
+      </div>
+      <div class="arch-arrow">⇄</div>
+      <div class="arch-box mod">
+        <div class="box-title">ui_manager.py</div>
+        <div class="box-sub">Stickers · Botones · Colisiones</div>
+      </div>
+      <div class="arch-arrow">⇄</div>
+      <div class="arch-box mod">
+        <div class="box-title">config.py</div>
+        <div class="box-sub">Constantes · Parámetros</div>
+      </div>
+    </div>
+    <div class="arch-arrow" style="font-size:24px; transform:rotate(90deg);">→</div>
+    <div class="arch-row">
+      <div class="arch-box data">
+        <div class="box-title">💾 captures/</div>
+        <div class="box-sub">Fotos PNG sin UI</div>
+      </div>
+      <div class="arch-arrow">·</div>
+      <div class="arch-box ext">
+        <div class="box-title">📁 assets/stickers/</div>
+        <div class="box-sub">PNGs con canal alpha</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:28px;">
+    <h3 style="font-family:'Syne',sans-serif; font-weight:700; font-size:17px; margin-bottom:16px;">Responsabilidades por módulo</h3>
+
+    <div class="callout info" style="margin-top:12px;">
+      <span class="callout-icon">🎛</span>
+      <div class="callout-text">
+        <strong>app.py — Orquestador Central:</strong> Inicializa la cámara, el logo de footer y los módulos de visión y UI. Mantiene el bucle while principal a 30 FPS, omite MediaPipe en los estados COUNTDOWN y CAPTURED para ahorrar CPU, gestiona el <code>peace_dwell</code> con arco de progreso visual, y compone la foto final (frame + stickers + logo, sin controles de UI). Limpia los stickers colocados tras cada captura.
+      </div>
+    </div>
+
+    <div class="callout tip" style="margin-top:12px;">
+      <span class="callout-icon">🧠</span>
+      <div class="callout-text">
+        <strong>vision_engine.py — Motor de Percepción:</strong> Encapsula MediaPipe Hands. Procesa el frame a escala 50% antes de enviarlo a MediaPipe (mitad de píxeles, sin pérdida de calidad). Expone: <code>process_frame(frame)</code> → <code>HandState</code>, <code>draw_landmarks(frame)</code> para visualizar el esqueleto de la mano, <code>_classify(lm)</code> con match-case y <code>alpha_blend(canvas, sticker, x, y)</code> estático. Los stickers se cargan con tinte blanco forzado (<code>img[..., :3] = 255</code>).
+      </div>
+    </div>
+
+    <div class="callout warn" style="margin-top:12px;">
+      <span class="callout-icon">🖼</span>
+      <div class="callout-text">
+        <strong>ui_manager.py — Capa de Presentación:</strong> Carga stickers PNG y SVG (vía cairosvg), aplica tinte blanco y pre-genera thumbnails para evitar resize por frame. <code>setup_layout(w, h)</code> calcula las ROIs de botones cada frame antes de <code>update_collisions()</code>. Renderiza la franja <em>superior</em> con thumbnails pre-calculados. Soporta arrastre de stickers con guard contra la franja UI. <code>clear_stickers()</code> limpia los stickers tras cada foto.
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════ 4. CÓDIGO ═══════ -->
+<section>
+  <div class="section-eyebrow">04 — Código Base</div>
+  <h2 class="section-title">Implementaciones Clave</h2>
+
+  <!-- pyproject.toml -->
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">pyproject.toml</span>
+      <span class="code-lang">TOML</span>
+    </div>
+    <pre><span class="cm"># Configuración del proyecto con uv</span>
+[project]
+<span class="var">name</span> = <span class="str">"open-source-photo-booth"</span>
+<span class="var">version</span> = <span class="str">"0.1.0"</span>
+<span class="var">description</span> = <span class="str">"Interactive photo booth with FOSS stickers and hand gestures"</span>
+<span class="var">requires-python</span> = <span class="str">">=3.11"</span>
+<span class="var">dependencies</span> = [
+    <span class="str">"opencv-python>=4.13.0.92"</span>,
+    <span class="str">"mediapipe==0.10.9"</span>,        <span class="cm"># pinned: versiones >=0.10.14 eliminaron solutions API</span>
+    <span class="str">"numpy>=1.26"</span>,
+    <span class="str">"pillow>=10.0"</span>,
+    <span class="str">"cairosvg"</span>,                   <span class="cm"># rasterización SVG → PNG en memoria</span>
+]
+
+[project.scripts]
+<span class="var">photo-booth</span> = <span class="str">"src.app:main"</span>
+
+[build-system]
+<span class="var">requires</span> = [<span class="str">"hatchling"</span>]
+<span class="var">build-backend</span> = <span class="str">"hatchling.build"</span>
+
+[tool.uv]
+<span class="var">dev-dependencies</span> = [
+    <span class="str">"pytest>=9.0.3"</span>,
+    <span class="str">"ruff>=0.15.12"</span>,
+]</pre>
+  </div>
+
+  <!-- config.py -->
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">src/config.py</span>
+      <span class="code-lang">Python</span>
+    </div>
+    <pre><span class="kw">from</span> <span class="var">pathlib</span> <span class="kw">import</span> <span class="cls">Path</span>
+
+<span class="cm"># Resolución de captura</span>
+<span class="var">FRAME_WIDTH</span>  <span class="op">=</span> <span class="num">1280</span>
+<span class="var">FRAME_HEIGHT</span> <span class="op">=</span> <span class="num">720</span>
+<span class="var">TARGET_FPS</span>   <span class="op">=</span> <span class="num">30</span>
+
+<span class="cm"># UI — franja de selección (superior)</span>
+<span class="var">STRIP_HEIGHT</span>        <span class="op">=</span> <span class="num">130</span>    <span class="cm"># px desde el borde superior</span>
+<span class="var">STICKERS_PER_PAGE</span>   <span class="op">=</span> <span class="num">4</span>
+<span class="var">STICKER_THUMB_SIZE</span>  <span class="op">=</span> <span class="num">90</span>     <span class="cm"># px — tamaño en la franja</span>
+<span class="var">STICKER_CANVAS_SIZE</span> <span class="op">=</span> <span class="num">160</span>    <span class="cm"># px — tamaño al soltar en pantalla</span>
+
+<span class="cm"># Colisión con delay de frames</span>
+<span class="var">COLLISION_DWELL_FRAMES</span> <span class="op">=</span> <span class="num">12</span>  <span class="cm"># ~0.4 s a 30 FPS</span>
+<span class="var">BUTTON_W</span>               <span class="op">=</span> <span class="num">60</span>
+<span class="var">BUTTON_H</span>               <span class="op">=</span> <span class="num">80</span>
+
+<span class="cm"># Captura</span>
+<span class="var">COUNTDOWN_SECONDS</span>  <span class="op">=</span> <span class="num">3</span>
+<span class="var">PEACE_DWELL_FRAMES</span> <span class="op">=</span> <span class="num">20</span>  <span class="cm"># frames ✌️ sostenidos antes del countdown (~0.7 s)</span>
+<span class="var">CAPTURES_DIR</span>       <span class="op">=</span> <span class="cls">Path</span>(<span class="str">"captures"</span>)
+<span class="var">CAPTURES_DIR</span>.mkdir(exist_ok<span class="op">=</span><span class="kw">True</span>)
+
+<span class="cm"># MediaPipe</span>
+<span class="var">MP_MAX_HANDS</span>          <span class="op">=</span> <span class="num">1</span>
+<span class="var">MP_MIN_DETECTION_CONF</span> <span class="op">=</span> <span class="num">0.7</span>
+<span class="var">MP_MIN_TRACKING_CONF</span>  <span class="op">=</span> <span class="num">0.6</span>
+<span class="var">MP_DETECT_SCALE</span>       <span class="op">=</span> <span class="num">0.5</span>  <span class="cm"># escala antes de MediaPipe — mitad de píxeles</span>
+
+<span class="cm"># Stickers (PNG y SVG)</span>
+<span class="var">ASSETS_DIR</span>    <span class="op">=</span> <span class="cls">Path</span>(<span class="str">"assets/stickers"</span>)
+<span class="var">STICKER_FILES</span> <span class="op">=</span> (
+    <span class="var">sorted</span>(<span class="var">ASSETS_DIR</span>.glob(<span class="str">"*.png"</span>)) <span class="op">+</span> <span class="var">sorted</span>(<span class="var">ASSETS_DIR</span>.glob(<span class="str">"*.svg"</span>))
+) <span class="kw">if</span> <span class="var">ASSETS_DIR</span>.exists() <span class="kw">else</span> []
+
+<span class="cm"># Logo de footer</span>
+<span class="var">FOOTER_LOGO</span>        <span class="op">=</span> <span class="cls">Path</span>(<span class="str">"assets/footer/kokoa_logo.png"</span>)
+<span class="var">FOOTER_LOGO_HEIGHT</span> <span class="op">=</span> <span class="num">200</span>   <span class="cm"># px — alto del logo esquina inferior-derecha</span>
+<span class="var">FOOTER_MARGIN</span>      <span class="op">=</span> <span class="num">16</span>    <span class="cm"># px — separación del borde</span></pre>
+  </div>
+
+  <!-- vision_engine.py -->
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">src/vision_engine.py</span>
+      <span class="code-lang">Python — Alpha Blending + MediaPipe</span>
+    </div>
+    <pre><span class="kw">from</span> <span class="var">__future__</span> <span class="kw">import</span> <span class="var">annotations</span>
+<span class="kw">import</span> <span class="var">cv2</span>
+<span class="kw">import</span> <span class="var">numpy</span> <span class="kw">as</span> <span class="var">np</span>
+<span class="kw">import</span> <span class="var">mediapipe</span> <span class="kw">as</span> <span class="var">mp</span>
+<span class="kw">from</span> <span class="var">dataclasses</span> <span class="kw">import</span> <span class="cls">dataclass</span>
+<span class="kw">from</span> <span class="var">enum</span> <span class="kw">import</span> <span class="cls">Enum</span>, <span class="var">auto</span>
+<span class="kw">from</span> <span class="var">config</span> <span class="kw">import</span> <span class="op">*</span>
+
+<span class="cm"># ─── Gestos reconocidos ────────────────────────────────────────────</span>
+<span class="kw">class</span> <span class="cls">Gesture</span>(<span class="cls">Enum</span>):
+    NONE         <span class="op">=</span> <span class="var">auto</span>()
+    PEACE        <span class="op">=</span> <span class="var">auto</span>()  <span class="cm"># ✌ disparador de foto</span>
+    POINTING     <span class="op">=</span> <span class="var">auto</span>()  <span class="cm"># ☝ navegación / drag</span>
+
+
+<span class="deco">@dataclass</span>
+<span class="kw">class</span> <span class="cls">HandState</span>:
+    landmarks     : <span class="var">list</span>             <span class="cm"># 21 puntos normalizados</span>
+    gesture       : <span class="cls">Gesture</span>
+    index_tip_px  : <span class="var">tuple</span>[<span class="var">int</span>, <span class="var">int</span>]  <span class="cm"># coordenadas píxel del índice</span>
+
+
+<span class="kw">class</span> <span class="cls">VisionEngine</span>:
+    <span class="str">"""Encapsula MediaPipe Hands y las operaciones de imagen."""</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="var">self</span>) -> <span class="kw">None</span>:
+        <span class="var">self</span>._mp_hands = <span class="var">mp</span>.solutions.hands
+        <span class="var">self</span>._hands = <span class="var">self</span>._mp_hands.<span class="cls">Hands</span>(
+            max_num_hands        <span class="op">=</span> <span class="var">MP_MAX_HANDS</span>,
+            min_detection_confidence <span class="op">=</span> <span class="var">MP_MIN_DETECTION_CONF</span>,
+            min_tracking_confidence  <span class="op">=</span> <span class="var">MP_MIN_TRACKING_CONF</span>,
+        )
+        <span class="var">self</span>._draw = <span class="var">mp</span>.solutions.drawing_utils
+
+    <span class="cm"># ── Detección ──────────────────────────────────────────────────</span>
+    <span class="kw">def</span> <span class="fn">process_frame</span>(<span class="var">self</span>, <span class="var">bgr_frame</span>: <span class="var">np</span>.<span class="cls">ndarray</span>) -> <span class="cls">HandState</span> <span class="op">|</span> <span class="kw">None</span>:
+        <span class="var">h</span>, <span class="var">w</span> = <span class="var">bgr_frame</span>.shape[:<span class="num">2</span>]
+        <span class="cm"># Escalar al 50% antes de MediaPipe — mitad de píxeles procesados</span>
+        <span class="var">small</span>   = <span class="var">cv2</span>.resize(<span class="var">bgr_frame</span>, (<span class="var">int</span>(<span class="var">w</span> <span class="op">*</span> <span class="var">MP_DETECT_SCALE</span>), <span class="var">int</span>(<span class="var">h</span> <span class="op">*</span> <span class="var">MP_DETECT_SCALE</span>)))
+        <span class="var">rgb</span>     = <span class="var">cv2</span>.cvtColor(<span class="var">small</span>, <span class="var">cv2</span>.<span class="var">COLOR_BGR2RGB</span>)
+        <span class="var">results</span> = <span class="var">self</span>._hands.process(<span class="var">rgb</span>)
+        <span class="var">self</span>._last_results = <span class="var">results</span>
+
+        <span class="kw">if not</span> <span class="var">results</span>.multi_hand_landmarks:
+            <span class="kw">return None</span>
+
+        <span class="var">lm</span>  = <span class="var">results</span>.multi_hand_landmarks[<span class="num">0</span>].landmark
+        <span class="var">tip</span> = <span class="var">lm</span>[<span class="num">8</span>]  <span class="cm"># INDEX_FINGER_TIP</span>
+        <span class="cm"># Landmarks normalizados [0,1] — proyectar sobre dimensiones full-res</span>
+        <span class="var">index_px</span> = (<span class="var">int</span>(<span class="var">tip</span>.x <span class="op">*</span> <span class="var">w</span>), <span class="var">int</span>(<span class="var">tip</span>.y <span class="op">*</span> <span class="var">h</span>))
+
+        <span class="kw">return</span> <span class="cls">HandState</span>(
+            landmarks    <span class="op">=</span> <span class="var">lm</span>,
+            gesture      <span class="op">=</span> <span class="var">self</span>.<span class="fn">_classify</span>(<span class="var">lm</span>),
+            index_tip_px <span class="op">=</span> <span class="var">index_px</span>,
+        )
+
+    <span class="kw">def</span> <span class="fn">draw_landmarks</span>(<span class="var">self</span>, <span class="var">frame</span>: <span class="var">np</span>.<span class="cls">ndarray</span>) -> <span class="kw">None</span>:
+        <span class="str">"""Dibuja el esqueleto de la mano sobre frame para todas las manos detectadas."""</span>
+        <span class="kw">if</span> <span class="var">self</span>._last_results <span class="kw">is None or not</span> <span class="var">self</span>._last_results.multi_hand_landmarks:
+            <span class="kw">return</span>
+        <span class="var">dot</span>  = <span class="var">self</span>._draw_utils.<span class="cls">DrawingSpec</span>(color=(<span class="num">0</span>,<span class="num">255</span>,<span class="num">120</span>), thickness=<span class="num">1</span>, circle_radius=<span class="num">3</span>)
+        <span class="var">line</span> = <span class="var">self</span>._draw_utils.<span class="cls">DrawingSpec</span>(color=(<span class="num">255</span>,<span class="num">255</span>,<span class="num">255</span>), thickness=<span class="num">1</span>)
+        <span class="kw">for</span> <span class="var">hand_lm</span> <span class="kw">in</span> <span class="var">self</span>._last_results.multi_hand_landmarks:
+            <span class="var">self</span>._draw_utils.draw_landmarks(
+                <span class="var">frame</span>, <span class="var">hand_lm</span>, <span class="var">self</span>._mp_hands.<span class="var">HAND_CONNECTIONS</span>, <span class="var">dot</span>, <span class="var">line</span>,
+            )
+
+    <span class="cm"># ── Clasificación de gestos ────────────────────────────────────</span>
+    <span class="kw">def</span> <span class="fn">_classify</span>(<span class="var">self</span>, <span class="var">lm</span>) -> <span class="cls">Gesture</span>:
+        <span class="cm"># Tip IDs: thumb=4, index=8, middle=12, ring=16, pinky=20</span>
+        <span class="cm"># MCP IDs: index=5, middle=9, ring=13, pinky=17</span>
+        <span class="kw">def</span> <span class="fn">extended</span>(<span class="var">tip</span>, <span class="var">mcp</span>): <span class="kw">return</span> <span class="var">lm</span>[<span class="var">tip</span>].y <span class="op"><</span> <span class="var">lm</span>[<span class="var">mcp</span>].y
+
+        <span class="var">idx</span>    <span class="op">=</span> <span class="fn">extended</span>(<span class="num">8</span>,  <span class="num">5</span>)
+        <span class="var">mid</span>    <span class="op">=</span> <span class="fn">extended</span>(<span class="num">12</span>, <span class="num">9</span>)
+        <span class="var">ring</span>   <span class="op">=</span> <span class="fn">extended</span>(<span class="num">16</span>, <span class="num">13</span>)
+        <span class="var">pinky</span>  <span class="op">=</span> <span class="fn">extended</span>(<span class="num">20</span>, <span class="num">17</span>)
+
+        <span class="kw">match</span> (<span class="var">idx</span>, <span class="var">mid</span>, <span class="var">ring</span>, <span class="var">pinky</span>):
+            <span class="kw">case</span> (<span class="kw">True</span>, <span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">False</span>):  <span class="kw">return</span> <span class="cls">Gesture</span>.<span class="var">PEACE</span>
+            <span class="kw">case</span> (<span class="kw">True</span>, <span class="kw">False</span>, <span class="kw">False</span>, <span class="kw">False</span>): <span class="kw">return</span> <span class="cls">Gesture</span>.<span class="var">POINTING</span>
+            <span class="kw">case</span> _:                              <span class="kw">return</span> <span class="cls">Gesture</span>.<span class="var">NONE</span>
+
+    <span class="cm"># ── Alpha Blending (núcleo del renderizado) ────────────────────</span>
+    <span class="deco">@staticmethod</span>
+    <span class="kw">def</span> <span class="fn">alpha_blend</span>(
+        <span class="var">canvas</span>  : <span class="var">np</span>.<span class="cls">ndarray</span>,       <span class="cm"># frame BGR (H×W×3)</span>
+        <span class="var">sticker</span> : <span class="var">np</span>.<span class="cls">ndarray</span>,       <span class="cm"># PNG BGRA  (h×w×4)</span>
+        <span class="var">x</span>       : <span class="var">int</span>,               <span class="cm"># esquina superior-izquierda</span>
+        <span class="var">y</span>       : <span class="var">int</span>,
+    ) -> <span class="var">np</span>.<span class="cls">ndarray</span>:
+        <span class="str">"""
+        Mezcla `sticker` sobre `canvas` en la posición (x, y).
+        Opera en float32 para precisión y regresa uint8.
+        Recorta silenciosamente si el sticker desborda el canvas.
+        """</span>
+        <span class="var">sh</span>, <span class="var">sw</span> = <span class="var">sticker</span>.shape[:<span class="num">2</span>]
+        <span class="var">ch</span>, <span class="var">cw</span> = <span class="var">canvas</span>.shape[:<span class="num">2</span>]
+
+        <span class="cm"># ── Calcular ROI válida ─────────────────────────────────────</span>
+        <span class="var">x1</span>, <span class="var">y1</span> = <span class="var">max</span>(<span class="var">x</span>, <span class="num">0</span>), <span class="var">max</span>(<span class="var">y</span>, <span class="num">0</span>)
+        <span class="var">x2</span>, <span class="var">y2</span> = <span class="var">min</span>(<span class="var">x</span> <span class="op">+</span> <span class="var">sw</span>, <span class="var">cw</span>), <span class="var">min</span>(<span class="var">y</span> <span class="op">+</span> <span class="var">sh</span>, <span class="var">ch</span>)
+
+        <span class="kw">if</span> <span class="var">x2</span> <span class="op"><=</span> <span class="var">x1</span> <span class="op">or</span> <span class="var">y2</span> <span class="op"><=</span> <span class="var">y1</span>:
+            <span class="kw">return</span> <span class="var">canvas</span>  <span class="cm"># sticker fuera de pantalla</span>
+
+        <span class="cm"># Región del sticker que cae dentro del canvas</span>
+        <span class="var">sx1</span> <span class="op">=</span> <span class="var">x1</span> <span class="op">-</span> <span class="var">x</span>; <span class="var">sy1</span> <span class="op">=</span> <span class="var">y1</span> <span class="op">-</span> <span class="var">y</span>
+        <span class="var">sx2</span> <span class="op">=</span> <span class="var">sx1</span> <span class="op">+</span> (<span class="var">x2</span> <span class="op">-</span> <span class="var">x1</span>); <span class="var">sy2</span> <span class="op">=</span> <span class="var">sy1</span> <span class="op">+</span> (<span class="var">y2</span> <span class="op">-</span> <span class="var">y1</span>)
+
+        <span class="cm"># ── Extraer canales ─────────────────────────────────────────</span>
+        <span class="var">roi</span>     <span class="op">=</span> <span class="var">canvas</span>[<span class="var">y1</span>:<span class="var">y2</span>, <span class="var">x1</span>:<span class="var">x2</span>].astype(<span class="var">np</span>.float32)
+        <span class="var">s_crop</span>  <span class="op">=</span> <span class="var">sticker</span>[<span class="var">sy1</span>:<span class="var">sy2</span>, <span class="var">sx1</span>:<span class="var">sx2</span>]
+        <span class="var">alpha</span>   <span class="op">=</span> <span class="var">s_crop</span>[..., <span class="num">3</span>:] <span class="op">/</span> <span class="num">255.0</span>  <span class="cm"># shape (h,w,1)</span>
+        <span class="var">s_bgr</span>   <span class="op">=</span> <span class="var">s_crop</span>[..., :<span class="num">3</span>].astype(<span class="var">np</span>.float32)
+
+        <span class="cm"># ── Mezcla: out = alpha·sticker + (1−alpha)·background ──────</span>
+        <span class="var">blended</span> <span class="op">=</span> <span class="var">alpha</span> <span class="op">*</span> <span class="var">s_bgr</span> <span class="op">+</span> (<span class="num">1.0</span> <span class="op">-</span> <span class="var">alpha</span>) <span class="op">*</span> <span class="var">roi</span>
+
+        <span class="var">canvas</span>[<span class="var">y1</span>:<span class="var">y2</span>, <span class="var">x1</span>:<span class="var">x2</span>] <span class="op">=</span> <span class="var">blended</span>.astype(<span class="var">np</span>.<span class="var">uint8</span>)
+        <span class="kw">return</span> <span class="var">canvas</span></pre>
+  </div>
+
+  <!-- ui_manager.py -->
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">src/ui_manager.py</span>
+      <span class="code-lang">Python — Colisión con Delay de Frames</span>
+    </div>
+    <pre><span class="kw">from</span> <span class="var">__future__</span> <span class="kw">import</span> <span class="var">annotations</span>
+<span class="kw">import</span> <span class="var">cv2</span>
+<span class="kw">import</span> <span class="var">numpy</span> <span class="kw">as</span> <span class="var">np</span>
+<span class="kw">from</span> <span class="var">dataclasses</span> <span class="kw">import</span> <span class="cls">dataclass</span>, <span class="var">field</span>
+<span class="kw">from</span> <span class="var">pathlib</span> <span class="kw">import</span> <span class="cls">Path</span>
+<span class="kw">from</span> <span class="var">config</span> <span class="kw">import</span> <span class="op">*</span>
+
+
+<span class="deco">@dataclass</span>
+<span class="kw">class</span> <span class="cls">StickerInstance</span>:
+    <span class="str">"""Un sticker colocado en el canvas con posición libre."""</span>
+    <span class="var">img</span>  : <span class="var">np</span>.<span class="cls">ndarray</span>  <span class="cm"># BGRA, tamaño STICKER_CANVAS_SIZE</span>
+    <span class="var">x</span>    : <span class="var">int</span>
+    <span class="var">y</span>    : <span class="var">int</span>
+    <span class="var">name</span> : <span class="var">str</span> <span class="op">=</span> <span class="str">""</span>
+    <span class="var">dragging</span>: <span class="var">bool</span> <span class="op">=</span> <span class="kw">False</span>
+
+
+<span class="deco">@dataclass</span>
+<span class="kw">class</span> <span class="cls">ButtonROI</span>:
+    <span class="str">"""Zona de interés de un botón con contador de dwell."""</span>
+    <span class="var">label</span>   : <span class="var">str</span>
+    <span class="var">x1</span>, <span class="var">y1</span>  : <span class="var">int</span>
+    <span class="var">x2</span>, <span class="var">y2</span>  : <span class="var">int</span>
+    <span class="var">dwell</span>   : <span class="var">int</span> <span class="op">=</span> <span class="num">0</span>   <span class="cm"># frames dentro del ROI</span>
+    <span class="var">cooldown</span>: <span class="var">int</span> <span class="op">=</span> <span class="num">0</span>   <span class="cm"># frames de espera post-disparo</span>
+
+    <span class="kw">def</span> <span class="fn">contains</span>(<span class="var">self</span>, <span class="var">pt</span>: <span class="var">tuple</span>[<span class="var">int</span>,<span class="var">int</span>]) -> <span class="var">bool</span>:
+        <span class="kw">return</span> <span class="var">self</span>.<span class="var">x1</span> <span class="op"><=</span> <span class="var">pt</span>[<span class="num">0</span>] <span class="op"><=</span> <span class="var">self</span>.<span class="var">x2</span> <span class="kw">and</span> \
+               <span class="var">self</span>.<span class="var">y1</span> <span class="op"><=</span> <span class="var">pt</span>[<span class="num">1</span>] <span class="op"><=</span> <span class="var">self</span>.<span class="var">y2</span>
+
+    <span class="kw">def</span> <span class="fn">update</span>(<span class="var">self</span>, <span class="var">inside</span>: <span class="var">bool</span>) -> <span class="var">bool</span>:
+        <span class="str">"""
+        Avanza el contador de dwell.
+        Retorna True cuando se alcanza COLLISION_DWELL_FRAMES
+        por primera vez (disparo único con cooldown).
+        """</span>
+        <span class="kw">if</span> <span class="var">self</span>.<span class="var">cooldown</span> <span class="op">></span> <span class="num">0</span>:
+            <span class="var">self</span>.<span class="var">cooldown</span> <span class="op">-=</span> <span class="num">1</span>
+            <span class="var">self</span>.<span class="var">dwell</span> <span class="op">=</span> <span class="num">0</span>
+            <span class="kw">return False</span>
+
+        <span class="kw">if</span> <span class="var">inside</span>:
+            <span class="var">self</span>.<span class="var">dwell</span> <span class="op">+=</span> <span class="num">1</span>
+            <span class="kw">if</span> <span class="var">self</span>.<span class="var">dwell</span> <span class="op">>=</span> <span class="var">COLLISION_DWELL_FRAMES</span>:
+                <span class="var">self</span>.<span class="var">dwell</span>    <span class="op">=</span> <span class="num">0</span>
+                <span class="var">self</span>.<span class="var">cooldown</span> <span class="op">=</span> <span class="num">20</span>  <span class="cm"># pausa anti-rebote</span>
+                <span class="kw">return True</span>
+        <span class="kw">else</span>:
+            <span class="var">self</span>.<span class="var">dwell</span> <span class="op">=</span> <span class="num">0</span>
+
+        <span class="kw">return False</span>
+
+    <span class="kw">def</span> <span class="fn">progress</span>(<span class="var">self</span>) -> <span class="var">float</span>:
+        <span class="str">"""0.0 → 1.0 — para barra de progreso visual."""</span>
+        <span class="kw">return</span> <span class="var">min</span>(<span class="var">self</span>.<span class="var">dwell</span> <span class="op">/</span> <span class="var">COLLISION_DWELL_FRAMES</span>, <span class="num">1.0</span>)
+
+
+<span class="kw">class</span> <span class="cls">UIManager</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="var">self</span>, <span class="var">sticker_paths</span>: <span class="var">list</span>[<span class="cls">Path</span>]) -> <span class="kw">None</span>:
+        <span class="var">self</span>._library   <span class="op">=</span> [<span class="var">self</span>.<span class="fn">_load</span>(<span class="var">p</span>) <span class="kw">for</span> <span class="var">p</span> <span class="kw">in</span> <span class="var">sticker_paths</span>]
+        <span class="var">self</span>._names     <span class="op">=</span> [<span class="var">p</span>.stem <span class="kw">for</span> <span class="var">p</span> <span class="kw">in</span> <span class="var">sticker_paths</span>]
+        <span class="var">self</span>._page      <span class="op">=</span> <span class="num">0</span>
+        <span class="var">self</span>._placed    : <span class="var">list</span>[<span class="cls">StickerInstance</span>] <span class="op">=</span> []
+
+        <span class="cm"># Botones — posicionados en render()</span>
+        <span class="var">self</span>._btn_prev <span class="op">=</span> <span class="cls">ButtonROI</span>(<span class="str">"◀"</span>, <span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>)
+        <span class="var">self</span>._btn_next <span class="op">=</span> <span class="cls">ButtonROI</span>(<span class="str">"▶"</span>, <span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>)
+
+    <span class="kw">def</span> <span class="fn">_load</span>(<span class="var">self</span>, <span class="var">path</span>: <span class="cls">Path</span>) -> <span class="var">np</span>.<span class="cls">ndarray</span>:
+        <span class="kw">if</span> <span class="var">path</span>.suffix.lower() <span class="op">==</span> <span class="str">".svg"</span>:
+            <span class="kw">import</span> <span class="var">cairosvg</span>
+            <span class="var">png_bytes</span> <span class="op">=</span> <span class="var">cairosvg</span>.svg2png(url<span class="op">=</span><span class="var">str</span>(<span class="var">path</span>.resolve()),
+                            output_width<span class="op">=</span><span class="var">STICKER_CANVAS_SIZE</span>, output_height<span class="op">=</span><span class="var">STICKER_CANVAS_SIZE</span>)
+            <span class="var">arr</span> <span class="op">=</span> <span class="var">np</span>.frombuffer(<span class="var">png_bytes</span>, dtype<span class="op">=</span><span class="var">np</span>.uint8)
+            <span class="var">img</span> <span class="op">=</span> <span class="var">cv2</span>.imdecode(<span class="var">arr</span>, <span class="var">cv2</span>.<span class="var">IMREAD_UNCHANGED</span>)
+        <span class="kw">else</span>:
+            <span class="var">img</span> <span class="op">=</span> <span class="var">cv2</span>.imread(<span class="var">str</span>(<span class="var">path</span>), <span class="var">cv2</span>.<span class="var">IMREAD_UNCHANGED</span>)
+        <span class="kw">if</span> <span class="var">img</span> <span class="kw">is None</span>:
+            <span class="kw">raise</span> <span class="cls">FileNotFoundError</span>(<span class="var">path</span>)
+        <span class="kw">if</span> <span class="var">img</span>.ndim <span class="op">==</span> <span class="num">2</span>:
+            <span class="var">img</span> <span class="op">=</span> <span class="var">cv2</span>.cvtColor(<span class="var">img</span>, <span class="var">cv2</span>.<span class="var">COLOR_GRAY2BGRA</span>)
+        <span class="kw">elif</span> <span class="var">img</span>.shape[<span class="num">2</span>] <span class="op">==</span> <span class="num">3</span>:
+            <span class="var">img</span> <span class="op">=</span> <span class="var">cv2</span>.cvtColor(<span class="var">img</span>, <span class="var">cv2</span>.<span class="var">COLOR_BGR2BGRA</span>)
+        <span class="var">img</span>[..., :<span class="num">3</span>] <span class="op">=</span> <span class="num">255</span>  <span class="cm"># tinte blanco: preserva alpha, fuerza BGR a blanco</span>
+        <span class="kw">return</span> <span class="var">cv2</span>.resize(<span class="var">img</span>, (<span class="var">STICKER_CANVAS_SIZE</span>,)<span class="op">*</span><span class="num">2</span>)
+
+    <span class="kw">def</span> <span class="fn">setup_layout</span>(<span class="var">self</span>, <span class="var">w</span>: <span class="var">int</span>, <span class="var">h</span>: <span class="var">int</span>) -> <span class="kw">None</span>:
+        <span class="str">"""Calcula posiciones ROI para frame de tamaño (w, h).
+        Llamar ANTES de update_collisions() cada frame."""</span>
+        <span class="var">bx</span>  <span class="op">=</span> <span class="num">10</span>
+        <span class="var">by</span>  <span class="op">=</span> (<span class="var">STRIP_HEIGHT</span> <span class="op">-</span> <span class="var">BUTTON_H</span>) <span class="op">//</span> <span class="num">2</span>
+        <span class="var">bx2</span> <span class="op">=</span> <span class="var">w</span> <span class="op">-</span> <span class="var">BUTTON_W</span> <span class="op">-</span> <span class="num">10</span>
+        <span class="var">self</span>._btn_prev.__dict__.update(x1<span class="op">=</span><span class="var">bx</span>,  y1<span class="op">=</span><span class="var">by</span>, x2<span class="op">=</span><span class="var">bx</span><span class="op">+</span><span class="var">BUTTON_W</span>,  y2<span class="op">=</span><span class="var">by</span><span class="op">+</span><span class="var">BUTTON_H</span>)
+        <span class="var">self</span>._btn_next.__dict__.update(x1<span class="op">=</span><span class="var">bx2</span>, y1<span class="op">=</span><span class="var">by</span>, x2<span class="op">=</span><span class="var">bx2</span><span class="op">+</span><span class="var">BUTTON_W</span>, y2<span class="op">=</span><span class="var">by</span><span class="op">+</span><span class="var">BUTTON_H</span>)
+        <span class="cm"># thumbnails centrados en la franja</span>
+        <span class="var">thumb_x1</span> <span class="op">=</span> <span class="var">bx</span> <span class="op">+</span> <span class="var">BUTTON_W</span> <span class="op">+</span> <span class="num">10</span>
+        <span class="var">spacing</span>  <span class="op">=</span> (<span class="var">bx2</span> <span class="op">-</span> <span class="num">10</span> <span class="op">-</span> <span class="var">thumb_x1</span>) <span class="op">//</span> <span class="var">max</span>(<span class="var">STICKERS_PER_PAGE</span>, <span class="num">1</span>)
+        <span class="var">ts</span>       <span class="op">=</span> <span class="var">STICKER_THUMB_SIZE</span>
+        <span class="kw">for</span> <span class="var">i</span>, <span class="var">btn</span> <span class="kw">in</span> <span class="var">enumerate</span>(<span class="var">self</span>._thumb_buttons):
+            <span class="var">tx</span> <span class="op">=</span> <span class="var">thumb_x1</span> <span class="op">+</span> <span class="var">i</span> <span class="op">*</span> <span class="var">spacing</span> <span class="op">+</span> (<span class="var">spacing</span> <span class="op">-</span> <span class="var">ts</span>) <span class="op">//</span> <span class="num">2</span>
+            <span class="var">ty</span> <span class="op">=</span> (<span class="var">STRIP_HEIGHT</span> <span class="op">-</span> <span class="var">ts</span>) <span class="op">//</span> <span class="num">2</span>
+            <span class="var">btn</span>.__dict__.update(x1<span class="op">=</span><span class="var">tx</span>, y1<span class="op">=</span><span class="var">ty</span>, x2<span class="op">=</span><span class="var">tx</span><span class="op">+</span><span class="var">ts</span>, y2<span class="op">=</span><span class="var">ty</span><span class="op">+</span><span class="var">ts</span>)
+
+    <span class="kw">def</span> <span class="fn">current_page_stickers</span>(<span class="var">self</span>):
+        <span class="var">start</span> <span class="op">=</span> <span class="var">self</span>._page <span class="op">*</span> <span class="var">STICKERS_PER_PAGE</span>
+        <span class="kw">return</span> <span class="var">self</span>._library[<span class="var">start</span>:<span class="var">start</span> <span class="op">+</span> <span class="var">STICKERS_PER_PAGE</span>]
+
+    <span class="kw">def</span> <span class="fn">update_collisions</span>(<span class="var">self</span>, <span class="var">index_tip</span>: <span class="var">tuple</span> <span class="op">|</span> <span class="kw">None</span>) -> <span class="kw">None</span>:
+        <span class="str">"""Actualiza dwell frames de cada botón según posición del índice."""</span>
+        <span class="var">pt</span> <span class="op">=</span> <span class="var">index_tip</span> <span class="kw">or</span> (-<span class="num">1</span>, -<span class="num">1</span>)
+        <span class="kw">if</span> <span class="var">self</span>._btn_prev.<span class="fn">update</span>(<span class="var">self</span>._btn_prev.<span class="fn">contains</span>(<span class="var">pt</span>)):
+            <span class="var">self</span>._page <span class="op">=</span> (<span class="var">self</span>._page <span class="op">-</span> <span class="num">1</span>) <span class="op">%</span> <span class="var">self</span>.<span class="fn">_total_pages</span>()
+        <span class="kw">if</span> <span class="var">self</span>._btn_next.<span class="fn">update</span>(<span class="var">self</span>._btn_next.<span class="fn">contains</span>(<span class="var">pt</span>)):
+            <span class="var">self</span>._page <span class="op">=</span> (<span class="var">self</span>._page <span class="op">+</span> <span class="num">1</span>) <span class="op">%</span> <span class="var">self</span>.<span class="fn">_total_pages</span>()
+
+    <span class="kw">def</span> <span class="fn">_total_pages</span>(<span class="var">self</span>) -> <span class="var">int</span>:
+        <span class="kw">return</span> <span class="var">max</span>(<span class="num">1</span>, -(-<span class="var">len</span>(<span class="var">self</span>._library) <span class="op">//</span> <span class="var">STICKERS_PER_PAGE</span>))
+
+    <span class="kw">def</span> <span class="fn">render_ui</span>(<span class="var">self</span>, <span class="var">frame</span>: <span class="var">np</span>.<span class="cls">ndarray</span>) -> <span class="var">np</span>.<span class="cls">ndarray</span>:
+        <span class="str">"""Dibuja franja superior + botones. Posiciones vienen de setup_layout()."""</span>
+        <span class="var">h</span>, <span class="var">w</span> <span class="op">=</span> <span class="var">frame</span>.shape[:<span class="num">2</span>]
+
+        <span class="cm"># Mezclar solo las filas de la franja — evita copiar el frame completo</span>
+        <span class="var">strip_copy</span> <span class="op">=</span> <span class="var">frame</span>[:<span class="var">STRIP_HEIGHT</span>].<span class="fn">copy</span>()
+        <span class="var">cv2</span>.addWeighted(<span class="var">self</span>._strip_bg, <span class="num">0.75</span>, <span class="var">strip_copy</span>, <span class="num">0.25</span>, <span class="num">0</span>, <span class="var">frame</span>[:<span class="var">STRIP_HEIGHT</span>])
+
+        <span class="cm"># Botones con barra de progreso</span>
+        <span class="kw">for</span> <span class="var">btn</span> <span class="kw">in</span> (<span class="var">self</span>._btn_prev, <span class="var">self</span>._btn_next):
+            <span class="var">p</span> <span class="op">=</span> <span class="var">btn</span>.<span class="fn">progress</span>()
+            <span class="var">cv2</span>.rectangle(<span class="var">frame</span>,(<span class="var">btn</span>.x1,<span class="var">btn</span>.y1),(<span class="var">btn</span>.x2,<span class="var">btn</span>.y2),(<span class="num">40</span>,<span class="num">40</span>,<span class="num">60</span>),<span class="op">-</span><span class="num">1</span>)
+            <span class="kw">if</span> <span class="var">p</span> <span class="op">></span> <span class="num">0</span>:
+                <span class="var">fill_w</span> <span class="op">=</span> <span class="var">int</span>((<span class="var">btn</span>.x2 <span class="op">-</span> <span class="var">btn</span>.x1) <span class="op">*</span> <span class="var">p</span>)
+                <span class="var">cv2</span>.rectangle(<span class="var">frame</span>,(<span class="var">btn</span>.x1,<span class="var">btn</span>.y1),
+                              (<span class="var">btn</span>.x1<span class="op">+</span><span class="var">fill_w</span>, <span class="var">btn</span>.y1<span class="op">+</span><span class="num">4</span>),(<span class="num">0</span>,<span class="num">220</span>,<span class="num">180</span>),<span class="op">-</span><span class="num">1</span>)
+            <span class="var">cv2</span>.putText(<span class="var">frame</span>, <span class="var">btn</span>.label,
+                        (<span class="var">btn</span>.x1<span class="op">+</span><span class="num">12</span>, <span class="var">btn</span>.y1<span class="op">+</span><span class="var">BUTTON_H</span><span class="op">//</span><span class="num">2</span><span class="op">+</span><span class="num">8</span>),
+                        <span class="var">cv2</span>.<span class="var">FONT_HERSHEY_SIMPLEX</span>, <span class="num">1.2</span>, (<span class="num">220</span>,<span class="num">220</span>,<span class="num">240</span>), <span class="num">2</span>)
+
+        <span class="kw">return</span> <span class="var">frame</span>
+
+    <span class="kw">def</span> <span class="fn">clear_stickers</span>(<span class="var">self</span>) -> <span class="kw">None</span>:
+        <span class="str">"""Elimina todos los stickers colocados. Llamado tras cada captura."""</span>
+        <span class="var">self</span>._placed.clear()
+        <span class="var">self</span>._drag_idx <span class="op">=</span> <span class="kw">None</span>
+
+    <span class="deco">@property</span>
+    <span class="kw">def</span> <span class="fn">placed_stickers</span>(<span class="var">self</span>): <span class="kw">return</span> <span class="var">self</span>._placed</pre>
+  </div>
+
+  <!-- app.py -->
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-filename">src/app.py</span>
+      <span class="code-lang">Python — Main Loop + Countdown + Captura Limpia</span>
+    </div>
+    <pre><span class="kw">from</span> <span class="var">__future__</span> <span class="kw">import</span> <span class="var">annotations</span>
+<span class="kw">import</span> <span class="var">cv2</span>
+<span class="kw">import</span> <span class="var">numpy</span> <span class="kw">as</span> <span class="var">np</span>
+<span class="kw">import</span> <span class="var">time</span>
+<span class="kw">from</span> <span class="var">datetime</span> <span class="kw">import</span> <span class="var">datetime</span>
+<span class="kw">from</span> <span class="var">enum</span> <span class="kw">import</span> <span class="cls">Enum</span>, <span class="var">auto</span>
+<span class="kw">from</span> <span class="var">config</span> <span class="kw">import</span> <span class="op">*</span>
+<span class="kw">from</span> <span class="var">vision_engine</span> <span class="kw">import</span> <span class="cls">VisionEngine</span>, <span class="cls">Gesture</span>
+<span class="kw">from</span> <span class="var">ui_manager</span> <span class="kw">import</span> <span class="cls">UIManager</span>
+
+
+<span class="kw">class</span> <span class="cls">AppState</span>(<span class="cls">Enum</span>):
+    IDLE        <span class="op">=</span> <span class="var">auto</span>()   <span class="cm"># interacción normal</span>
+    COUNTDOWN   <span class="op">=</span> <span class="var">auto</span>()   <span class="cm"># cuenta regresiva activa</span>
+    CAPTURED    <span class="op">=</span> <span class="var">auto</span>()   <span class="cm"># flash post-captura</span>
+
+
+<span class="kw">def</span> <span class="fn">render_countdown</span>(<span class="var">frame</span>: <span class="var">np</span>.<span class="cls">ndarray</span>, <span class="var">n</span>: <span class="var">int</span>) -> <span class="kw">None</span>:
+    <span class="str">"""Dibuja el número de cuenta regresiva centrado, con halo."""</span>
+    <span class="var">h</span>, <span class="var">w</span> <span class="op">=</span> <span class="var">frame</span>.shape[:<span class="num">2</span>]
+    <span class="var">text</span> <span class="op">=</span> <span class="var">str</span>(<span class="var">n</span>)
+    <span class="var">font</span> <span class="op">=</span> <span class="var">cv2</span>.<span class="var">FONT_HERSHEY_SIMPLEX</span>
+    <span class="var">scale</span> <span class="op">=</span> <span class="num">8.0</span>; <span class="var">thick</span> <span class="op">=</span> <span class="num">16</span>
+    (<span class="var">tw</span>, <span class="var">th</span>), _ <span class="op">=</span> <span class="var">cv2</span>.getTextSize(<span class="var">text</span>, <span class="var">font</span>, <span class="var">scale</span>, <span class="var">thick</span>)
+    <span class="var">org</span> <span class="op">=</span> ((<span class="var">w</span> <span class="op">-</span> <span class="var">tw</span>) <span class="op">//</span> <span class="num">2</span>, (<span class="var">h</span> <span class="op">+</span> <span class="var">th</span>) <span class="op">//</span> <span class="num">2</span>)
+    <span class="cm"># halo negro</span>
+    <span class="var">cv2</span>.putText(<span class="var">frame</span>, <span class="var">text</span>, <span class="var">org</span>, <span class="var">font</span>, <span class="var">scale</span>, (<span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>), <span class="var">thick</span><span class="op">+</span><span class="num">8</span>)
+    <span class="cm"># texto cyan</span>
+    <span class="var">cv2</span>.putText(<span class="var">frame</span>, <span class="var">text</span>, <span class="var">org</span>, <span class="var">font</span>, <span class="var">scale</span>, (<span class="num">0</span>,<span class="num">230</span>,<span class="num">255</span>), <span class="var">thick</span>)
+
+
+<span class="kw">def</span> <span class="fn">_load_logo</span>(<span class="var">path</span>: <span class="cls">Path</span>, <span class="var">height</span>: <span class="var">int</span>) -> <span class="var">np</span>.<span class="cls">ndarray</span> <span class="op">|</span> <span class="kw">None</span>:
+    <span class="kw">if not</span> <span class="var">path</span>.exists(): <span class="kw">return None</span>
+    <span class="var">img</span> <span class="op">=</span> <span class="var">cv2</span>.imread(<span class="var">str</span>(<span class="var">path</span>), <span class="var">cv2</span>.<span class="var">IMREAD_UNCHANGED</span>)
+    <span class="kw">if</span> <span class="var">img</span> <span class="kw">is None</span>: <span class="kw">return None</span>
+    <span class="kw">if</span> <span class="var">img</span>.shape[<span class="num">2</span>] <span class="op">==</span> <span class="num">3</span>: <span class="var">img</span> <span class="op">=</span> <span class="var">cv2</span>.cvtColor(<span class="var">img</span>, <span class="var">cv2</span>.<span class="var">COLOR_BGR2BGRA</span>)
+    <span class="var">h</span>, <span class="var">w</span> <span class="op">=</span> <span class="var">img</span>.shape[:<span class="num">2</span>]
+    <span class="var">new_w</span> <span class="op">=</span> <span class="var">max</span>(<span class="num">1</span>, <span class="var">int</span>(<span class="var">w</span> <span class="op">*</span> <span class="var">height</span> <span class="op">/</span> <span class="var">h</span>))
+    <span class="kw">return</span> <span class="var">cv2</span>.resize(<span class="var">img</span>, (<span class="var">new_w</span>, <span class="var">height</span>))
+
+
+<span class="kw">def</span> <span class="fn">save_clean_capture</span>(
+    <span class="var">raw_frame</span>: <span class="var">np</span>.<span class="cls">ndarray</span>,
+    <span class="var">ui</span>       : <span class="cls">UIManager</span>,
+    <span class="var">engine</span>   : <span class="cls">VisionEngine</span>,
+    <span class="var">logo</span>     : <span class="var">np</span>.<span class="cls">ndarray</span> <span class="op">|</span> <span class="kw">None</span> <span class="op">=</span> <span class="kw">None</span>,
+) -> <span class="cls">Path</span>:
+    <span class="str">"""frame puro + stickers + logo de footer, SIN controles de UI."""</span>
+    <span class="var">clean</span> <span class="op">=</span> <span class="var">raw_frame</span>.<span class="fn">copy</span>()
+    <span class="kw">for</span> <span class="var">s</span> <span class="kw">in</span> <span class="var">ui</span>.placed_stickers:
+        <span class="var">clean</span> <span class="op">=</span> <span class="cls">VisionEngine</span>.<span class="fn">alpha_blend</span>(<span class="var">clean</span>, <span class="var">s</span>.img, <span class="var">s</span>.x, <span class="var">s</span>.y)
+    <span class="kw">if</span> <span class="var">logo</span> <span class="kw">is not None</span>:
+        <span class="var">fh</span>, <span class="var">fw</span> <span class="op">=</span> <span class="var">clean</span>.shape[:<span class="num">2</span>]
+        <span class="var">lh</span>, <span class="var">lw</span> <span class="op">=</span> <span class="var">logo</span>.shape[:<span class="num">2</span>]
+        <span class="var">clean</span> <span class="op">=</span> <span class="cls">VisionEngine</span>.<span class="fn">alpha_blend</span>(<span class="var">clean</span>, <span class="var">logo</span>,
+                   <span class="var">fw</span> <span class="op">-</span> <span class="var">lw</span> <span class="op">-</span> <span class="var">FOOTER_MARGIN</span>, <span class="var">fh</span> <span class="op">-</span> <span class="var">lh</span> <span class="op">-</span> <span class="var">FOOTER_MARGIN</span>)
+    <span class="var">ts</span>   <span class="op">=</span> <span class="var">datetime</span>.<span class="fn">now</span>().<span class="fn">strftime</span>(<span class="str">"%Y%m%d_%H%M%S"</span>)
+    <span class="var">path</span> <span class="op">=</span> <span class="var">CAPTURES_DIR</span> <span class="op">/</span> <span class="var">f</span><span class="str">"photo_{ts}.png"</span>
+    <span class="var">cv2</span>.imwrite(<span class="var">str</span>(<span class="var">path</span>), <span class="var">clean</span>)
+    <span class="kw">return</span> <span class="var">path</span>
+
+
+<span class="kw">def</span> <span class="fn">main</span>() -> <span class="kw">None</span>:
+    <span class="var">cap</span> <span class="op">=</span> <span class="var">cv2</span>.<span class="cls">VideoCapture</span>(<span class="num">0</span>)
+    <span class="var">cap</span>.set(<span class="var">cv2</span>.<span class="var">CAP_PROP_FRAME_WIDTH</span>,  <span class="var">FRAME_WIDTH</span>)
+    <span class="var">cap</span>.set(<span class="var">cv2</span>.<span class="var">CAP_PROP_FRAME_HEIGHT</span>, <span class="var">FRAME_HEIGHT</span>)
+    <span class="var">cap</span>.set(<span class="var">cv2</span>.<span class="var">CAP_PROP_FPS</span>,          <span class="var">TARGET_FPS</span>)
+
+    <span class="var">engine</span> <span class="op">=</span> <span class="cls">VisionEngine</span>()
+    <span class="var">ui</span>     <span class="op">=</span> <span class="cls">UIManager</span>(<span class="var">STICKER_FILES</span>)
+    <span class="var">logo</span>   <span class="op">=</span> <span class="fn">_load_logo</span>(<span class="var">FOOTER_LOGO</span>, <span class="var">FOOTER_LOGO_HEIGHT</span>)
+
+    <span class="var">state</span>          : <span class="cls">AppState</span>        <span class="op">=</span> <span class="cls">AppState</span>.<span class="var">IDLE</span>
+    <span class="var">countdown_start</span>: <span class="var">float</span>           <span class="op">=</span> <span class="num">0.0</span>
+    <span class="var">flash_alpha</span>    : <span class="var">float</span>           <span class="op">=</span> <span class="num">0.0</span>
+    <span class="var">last_raw</span>       : <span class="var">np</span>.<span class="cls">ndarray</span> <span class="op">|</span> <span class="kw">None</span> <span class="op">=</span> <span class="kw">None</span>
+    <span class="var">peace_dwell</span>    : <span class="var">int</span>             <span class="op">=</span> <span class="num">0</span>
+
+    <span class="var">cv2</span>.namedWindow(<span class="str">"Open Source Photo Booth"</span>, <span class="var">cv2</span>.<span class="var">WINDOW_NORMAL</span>)
+
+    <span class="kw">while</span> <span class="var">cap</span>.isOpened():
+        <span class="var">ok</span>, <span class="var">frame</span> <span class="op">=</span> <span class="var">cap</span>.read()
+        <span class="kw">if not</span> <span class="var">ok</span>: <span class="kw">break</span>
+
+        <span class="var">frame</span>    <span class="op">=</span> <span class="var">cv2</span>.flip(<span class="var">frame</span>, <span class="num">1</span>)
+        <span class="var">last_raw</span> <span class="op">=</span> <span class="var">frame</span>.<span class="fn">copy</span>()
+        <span class="cm"># Saltar MediaPipe en estados no interactivos</span>
+        <span class="var">hand</span> <span class="op">=</span> <span class="var">engine</span>.<span class="fn">process_frame</span>(<span class="var">frame</span>) <span class="kw">if</span> <span class="var">state</span> <span class="op">==</span> <span class="cls">AppState</span>.<span class="var">IDLE</span> <span class="kw">else None</span>
+
+        <span class="kw">for</span> <span class="var">s</span> <span class="kw">in</span> <span class="var">ui</span>.placed_stickers:
+            <span class="var">frame</span> <span class="op">=</span> <span class="cls">VisionEngine</span>.<span class="fn">alpha_blend</span>(<span class="var">frame</span>, <span class="var">s</span>.img, <span class="var">s</span>.x, <span class="var">s</span>.y)
+
+        <span class="kw">match</span> <span class="var">state</span>:
+            <span class="kw">case</span> <span class="cls">AppState</span>.<span class="var">IDLE</span>:
+                <span class="var">engine</span>.<span class="fn">draw_landmarks</span>(<span class="var">frame</span>)
+                <span class="var">fh</span>, <span class="var">fw</span> <span class="op">=</span> <span class="var">frame</span>.shape[:<span class="num">2</span>]
+                <span class="var">ui</span>.<span class="fn">setup_layout</span>(<span class="var">fw</span>, <span class="var">fh</span>)
+                <span class="var">ui</span>.<span class="fn">update_collisions</span>(
+                    <span class="var">hand</span>.index_tip_px <span class="kw">if</span> <span class="var">hand</span> <span class="kw">else None</span>,
+                    is_pointing<span class="op">=</span><span class="var">hand</span> <span class="kw">is not None and</span> <span class="var">hand</span>.gesture <span class="op">==</span> <span class="cls">Gesture</span>.<span class="var">POINTING</span>,
+                )
+                <span class="var">frame</span> <span class="op">=</span> <span class="var">ui</span>.<span class="fn">render_ui</span>(<span class="var">frame</span>)
+
+                <span class="cm"># Cursor del dedo</span>
+                <span class="kw">if</span> <span class="var">hand</span>:
+                    <span class="var">ix</span>, <span class="var">iy</span> <span class="op">=</span> <span class="var">hand</span>.index_tip_px
+                    <span class="var">cv2</span>.circle(<span class="var">frame</span>, (<span class="var">ix</span>, <span class="var">iy</span>), <span class="num">10</span>, (<span class="num">0</span>,<span class="num">0</span>,<span class="num">0</span>),    <span class="op">-</span><span class="num">1</span>)
+                    <span class="var">cv2</span>.circle(<span class="var">frame</span>, (<span class="var">ix</span>, <span class="var">iy</span>),  <span class="num">8</span>, (<span class="num">0</span>,<span class="num">230</span>,<span class="num">255</span>), <span class="op">-</span><span class="num">1</span>)
+
+                <span class="cm"># PEACE dwell con arco de progreso</span>
+                <span class="kw">if</span> <span class="var">hand</span> <span class="kw">and</span> <span class="var">hand</span>.gesture <span class="op">==</span> <span class="cls">Gesture</span>.<span class="var">PEACE</span>:
+                    <span class="var">peace_dwell</span> <span class="op">+=</span> <span class="num">1</span>
+                    <span class="var">ix</span>, <span class="var">iy</span>   <span class="op">=</span> <span class="var">hand</span>.index_tip_px
+                    <span class="var">progress</span> <span class="op">=</span> <span class="var">peace_dwell</span> <span class="op">/</span> <span class="var">PEACE_DWELL_FRAMES</span>
+                    <span class="var">sweep</span>    <span class="op">=</span> <span class="var">int</span>(<span class="num">360</span> <span class="op">*</span> <span class="var">progress</span>)
+                    <span class="var">cv2</span>.ellipse(<span class="var">frame</span>, (<span class="var">ix</span>, <span class="var">iy</span>), (<span class="num">24</span>,<span class="num">24</span>), <span class="op">-</span><span class="num">90</span>, <span class="num">0</span>, <span class="num">360</span>,  (<span class="num">50</span>,<span class="num">50</span>,<span class="num">50</span>),   <span class="num">2</span>)
+                    <span class="var">cv2</span>.ellipse(<span class="var">frame</span>, (<span class="var">ix</span>, <span class="var">iy</span>), (<span class="num">24</span>,<span class="num">24</span>), <span class="op">-</span><span class="num">90</span>, <span class="num">0</span>, <span class="var">sweep</span>, (<span class="num">0</span>,<span class="num">230</span>,<span class="num">255</span>), <span class="num">3</span>)
+                    <span class="kw">if</span> <span class="var">peace_dwell</span> <span class="op">>=</span> <span class="var">PEACE_DWELL_FRAMES</span>:
+                        <span class="var">state</span>           <span class="op">=</span> <span class="cls">AppState</span>.<span class="var">COUNTDOWN</span>
+                        <span class="var">countdown_start</span> <span class="op">=</span> <span class="var">time</span>.time()
+                        <span class="var">peace_dwell</span>     <span class="op">=</span> <span class="num">0</span>
+                <span class="kw">else</span>:
+                    <span class="var">peace_dwell</span> <span class="op">=</span> <span class="num">0</span>
+
+            <span class="kw">case</span> <span class="cls">AppState</span>.<span class="var">COUNTDOWN</span>:
+                <span class="var">elapsed</span> <span class="op">=</span> <span class="var">time</span>.time() <span class="op">-</span> <span class="var">countdown_start</span>
+                <span class="var">n</span>       <span class="op">=</span> <span class="var">COUNTDOWN_SECONDS</span> <span class="op">-</span> <span class="var">int</span>(<span class="var">elapsed</span>)
+                <span class="kw">if</span> <span class="var">n</span> <span class="op">></span> <span class="num">0</span>:
+                    <span class="fn">render_countdown</span>(<span class="var">frame</span>, <span class="var">n</span>)
+                <span class="kw">else</span>:
+                    <span class="var">path</span> <span class="op">=</span> <span class="fn">save_clean_capture</span>(<span class="var">last_raw</span>, <span class="var">ui</span>, <span class="var">engine</span>, <span class="var">logo</span>)
+                    <span class="var">print</span>(<span class="var">f</span><span class="str">"Saved: {path}"</span>)
+                    <span class="var">ui</span>.<span class="fn">clear_stickers</span>()   <span class="cm"># limpiar para la siguiente sesión</span>
+                    <span class="var">state</span>       <span class="op">=</span> <span class="cls">AppState</span>.<span class="var">CAPTURED</span>
+                    <span class="var">flash_alpha</span> <span class="op">=</span> <span class="num">1.0</span>
+
+            <span class="kw">case</span> <span class="cls">AppState</span>.<span class="var">CAPTURED</span>:
+                <span class="kw">if</span> <span class="var">flash_alpha</span> <span class="op">></span> <span class="num">0</span>:
+                    <span class="var">white</span> <span class="op">=</span> <span class="var">np</span>.ones_like(<span class="var">frame</span>, dtype<span class="op">=</span><span class="var">np</span>.uint8) <span class="op">*</span> <span class="num">255</span>
+                    <span class="var">cv2</span>.addWeighted(<span class="var">white</span>, <span class="var">flash_alpha</span>,
+                                   <span class="var">frame</span>, <span class="num">1</span> <span class="op">-</span> <span class="var">flash_alpha</span>, <span class="num">0</span>, <span class="var">frame</span>)
+                    <span class="var">flash_alpha</span> <span class="op">-=</span> <span class="num">0.08</span>
+                <span class="kw">else</span>:
+                    <span class="var">state</span> <span class="op">=</span> <span class="cls">AppState</span>.<span class="var">IDLE</span>
+
+        <span class="cm"># Logo de footer siempre visible en vista en vivo</span>
+        <span class="kw">if</span> <span class="var">logo</span> <span class="kw">is not None</span>:
+            <span class="var">fh</span>, <span class="var">fw</span> <span class="op">=</span> <span class="var">frame</span>.shape[:<span class="num">2</span>]
+            <span class="var">lh</span>, <span class="var">lw</span> <span class="op">=</span> <span class="var">logo</span>.shape[:<span class="num">2</span>]
+            <span class="cls">VisionEngine</span>.<span class="fn">alpha_blend</span>(<span class="var">frame</span>, <span class="var">logo</span>,
+                <span class="var">fw</span> <span class="op">-</span> <span class="var">lw</span> <span class="op">-</span> <span class="var">FOOTER_MARGIN</span>, <span class="var">fh</span> <span class="op">-</span> <span class="var">lh</span> <span class="op">-</span> <span class="var">FOOTER_MARGIN</span>)
+
+        <span class="var">cv2</span>.imshow(<span class="str">"Open Source Photo Booth"</span>, <span class="var">frame</span>)
+        <span class="kw">if</span> <span class="var">cv2</span>.waitKey(<span class="num">1</span>) <span class="op">&</span> <span class="num">0xFF</span> <span class="op">==</span> <span class="var">ord</span>(<span class="str">"q"</span>):
+            <span class="kw">break</span>
+
+    <span class="var">cap</span>.release()
+    <span class="var">cv2</span>.destroyAllWindows()
+
+
+<span class="kw">if</span> <span class="var">__name__</span> <span class="op">==</span> <span class="str">"__main__"</span>:
+    <span class="fn">main</span>()</pre>
+  </div>
+</section>
+
+
+<!-- ═══════ 5. GESTOS ═══════ -->
+<section>
+  <div class="section-eyebrow">05 — Interacción</div>
+  <h2 class="section-title">Gestos y Controles</h2>
+
+  <div class="gesture-grid">
+    <div class="gesture-card">
+      <div class="gesture-emoji">✌️</div>
+      <div class="gesture-name">Signo de Paz → Foto</div>
+      <div class="gesture-desc">Índice y medio extendidos, anular y meñique cerrados. Activa la cuenta regresiva de 3 segundos.</div>
+    </div>
+    <div class="gesture-card">
+      <div class="gesture-emoji">☝️</div>
+      <div class="gesture-name">Dedo Índice → Navegar</div>
+      <div class="gesture-desc">Solo el índice extendido. Usado para hover sobre botones y arrastrar stickers por la pantalla.</div>
+    </div>
+    <div class="gesture-card">
+      <div class="gesture-emoji">✋</div>
+      <div class="gesture-name">Ausencia → Reposo</div>
+      <div class="gesture-desc">Sin mano detectada. El sistema permanece en IDLE; los contadores de colisión se resetean a 0.</div>
+    </div>
+  </div>
+
+  <div class="callout info" style="margin-top:24px;">
+    <span class="callout-icon">📐</span>
+    <div class="callout-text">
+      <strong>Clasificación por landmarks Y:</strong> La lógica compara la coordenada Y del tip de cada dedo (landmark 8, 12, 16, 20) con su articulación MCP (5, 9, 13, 17). Si <code>tip.y &lt; mcp.y</code>, el dedo está extendido. Python 3.11 <code>match-case</code> hace esta clasificación limpia y extensible sin cadenas de if/elif.
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════ 6. COLISIÓN ═══════ -->
+<section>
+  <div class="section-eyebrow">06 — Lógica de Colisión</div>
+  <h2 class="section-title">ROI con Delay de Frames</h2>
+
+  <div class="collision-visual">
+    <div class="collision-diagram">
+      <div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-muted); margin-bottom:12px; letter-spacing:1px;">VISUALIZACIÓN DEL DWELL</div>
+      <div class="roi-box">
+        <div class="roi-label">ROI Botón ▶</div>
+        <div style="margin:8px 0; font-size:12px; color:var(--text-muted);">Índice dentro del área:</div>
+        <div class="finger-dot"></div>
+        <div class="frame-counter">
+          <div class="frame-pip filled"></div>
+          <div class="frame-pip filled"></div>
+          <div class="frame-pip filled"></div>
+          <div class="frame-pip filled"></div>
+          <div class="frame-pip filled"></div>
+          <div class="frame-pip filled"></div>
+          <div class="frame-pip filled"></div>
+          <div class="frame-pip filled"></div>
+          <div class="frame-pip filled"></div>
+          <div class="frame-pip empty"></div>
+          <div class="frame-pip empty"></div>
+          <div class="frame-pip empty"></div>
+          <div class="frame-pip empty"></div>
+          <div class="frame-pip empty"></div>
+          <div class="frame-pip empty"></div>
+          <div class="frame-pip empty"></div>
+          <div class="frame-pip empty"></div>
+          <div class="frame-pip empty"></div>
+        </div>
+        <div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--accent3); margin-top:6px;">6 / 12 frames → 50%</div>
+      </div>
+      <div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-muted); text-align:center; margin-top:8px;">
+        Al frame 12 → 🔥 DISPARO<br>
+        Cooldown: 20 frames más
+      </div>
+    </div>
+    <div class="collision-logic">
+      <h3 style="font-family:'Syne',sans-serif; font-weight:700; font-size:16px; margin-bottom:14px;">¿Por qué delay de frames?</h3>
+      <p style="color:var(--text-dim); font-size:14px; margin-bottom:16px;">
+        Los gestos de mano tienen jitter natural: el dedo entra y sale del área del botón en milisegundos incluso cuando el usuario <em>intenta</em> permanecer inmóvil. Un clic por contacto dispararía acciones falsas constantemente.
+      </p>
+      <p style="color:var(--text-dim); font-size:14px; margin-bottom:16px;">
+        El contador <strong>dwell</strong> exige que el landmark permanezca <em>dentro</em> del ROI durante <strong>12 frames consecutivos</strong> (~0.4 s a 30 FPS). Si el dedo sale aunque sea un frame, el contador vuelve a 0. Esto elimina clics accidentales sin sacrificar responsividad.
+      </p>
+      <p style="color:var(--text-dim); font-size:14px;">
+        El <strong>cooldown</strong> de 20 frames post-disparo evita que una acción se repita inmediatamente si la mano sigue sobre el botón.
+      </p>
+
+      <div style="margin-top:20px; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:16px;">
+        <div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-muted); margin-bottom:8px;">PARÁMETROS AJUSTABLES EN config.py</div>
+        <div style="display:flex; gap:24px; flex-wrap:wrap;">
+          <div>
+            <div style="font-family:'Space Mono',monospace; font-size:13px; color:var(--accent);">COLLISION_DWELL_FRAMES</div>
+            <div style="font-size:12px; color:var(--text-muted);">12 frames = ~0.4 s</div>
+          </div>
+          <div>
+            <div style="font-family:'Space Mono',monospace; font-size:13px; color:var(--accent4);">PEACE_DWELL_FRAMES</div>
+            <div style="font-size:12px; color:var(--text-muted);">20 frames = ~0.7 s ✌️</div>
+          </div>
+          <div>
+            <div style="font-family:'Space Mono',monospace; font-size:13px; color:var(--accent4);">cooldown</div>
+            <div style="font-size:12px; color:var(--text-muted);">20 frames post-disparo</div>
+          </div>
+          <div>
+            <div style="font-family:'Space Mono',monospace; font-size:13px; color:var(--accent3);">MP_DETECT_SCALE</div>
+            <div style="font-size:12px; color:var(--text-muted);">0.5 → mitad de píxeles</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════ 7. FASES ═══════ -->
+<section>
+  <div class="section-eyebrow">07 — Planificación</div>
+  <h2 class="section-title">Fases de Desarrollo</h2>
+
+  <div class="phases">
+
+    <div class="phase">
+      <div class="phase-left">
+        <span class="phase-number">FASE 01</span>
+        <span class="phase-label" style="color:var(--accent);">Setup &amp; Entorno</span>
+        <span class="phase-duration" style="border-color:rgba(0,229,255,0.3); color:var(--accent);">2–3 días</span>
+      </div>
+      <div class="phase-right">
+        <ul class="phase-tasks">
+          <li><span class="task-bullet" style="color:var(--accent)"></span>Inicializar proyecto con <code>uv init</code>, crear <code>.python-version</code> con contenido <code>3.11</code></li>
+          <li><span class="task-bullet" style="color:var(--accent)"></span>Definir <code>pyproject.toml</code> con todas las dependencias y script de entrada</li>
+          <li><span class="task-bullet" style="color:var(--accent)"></span>Verificar captura de cámara con OpenCV y flip de espejo</li>
+          <li><span class="task-bullet" style="color:var(--accent)"></span>Preparar y normalizar stickers PNG con canal alpha correcto</li>
+        </ul>
+        <div class="tl-files" style="margin-top:14px;">
+          <span class="tl-file">pyproject.toml</span>
+          <span class="tl-file">.python-version</span>
+          <span class="tl-file">config.py</span>
+          <span class="tl-file">assets/stickers/</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-left">
+        <span class="phase-number">FASE 02</span>
+        <span class="phase-label" style="color:#a78bfa;">Motor de Visión</span>
+        <span class="phase-duration" style="border-color:rgba(124,58,237,0.3); color:#a78bfa;">4–5 días</span>
+      </div>
+      <div class="phase-right">
+        <ul class="phase-tasks">
+          <li><span class="task-bullet" style="color:#a78bfa"></span>Integrar MediaPipe Hands, extraer landmarks y visualizar en debug</li>
+          <li><span class="task-bullet" style="color:#a78bfa"></span>Implementar <code>alpha_blend()</code> con NumPy vectorizado y prueba unitaria</li>
+          <li><span class="task-bullet" style="color:#a78bfa"></span>Implementar y calibrar clasificador de gestos (PEACE, POINTING)</li>
+          <li><span class="task-bullet" style="color:#a78bfa"></span>Medir rendimiento: apuntar a &gt;25 FPS en hardware objetivo</li>
+        </ul>
+        <div class="tl-files" style="margin-top:14px;">
+          <span class="tl-file">vision_engine.py</span>
+          <span class="tl-file">test_vision_engine.py</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-left">
+        <span class="phase-number">FASE 03</span>
+        <span class="phase-label" style="color:var(--accent3);">UI &amp; Colisiones</span>
+        <span class="phase-duration" style="border-color:rgba(16,185,129,0.3); color:var(--accent3);">5–6 días</span>
+      </div>
+      <div class="phase-right">
+        <ul class="phase-tasks">
+          <li><span class="task-bullet" style="color:var(--accent3)"></span>Renderizar franja de selección con thumbnails de los 4 stickers activos</li>
+          <li><span class="task-bullet" style="color:var(--accent3)"></span>Implementar <code>ButtonROI</code> con lógica dwell completa y barra de progreso visual</li>
+          <li><span class="task-bullet" style="color:var(--accent3)"></span>Implementar navegación de páginas (prev/next) y colocación de sticker por dwell sobre thumbnail</li>
+          <li><span class="task-bullet" style="color:var(--accent3)"></span>Implementar drag: pickup del sticker más cercano al índice, drop al cerrar</li>
+        </ul>
+        <div class="tl-files" style="margin-top:14px;">
+          <span class="tl-file">ui_manager.py</span>
+          <span class="tl-file">test_ui_manager.py</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-left">
+        <span class="phase-number">FASE 04</span>
+        <span class="phase-label" style="color:var(--accent4);">Captura &amp; Flujo</span>
+        <span class="phase-duration" style="border-color:rgba(245,158,11,0.3); color:var(--accent4);">3–4 días</span>
+      </div>
+      <div class="phase-right">
+        <ul class="phase-tasks">
+          <li><span class="task-bullet" style="color:var(--accent4)"></span>Implementar máquina de estados (IDLE → COUNTDOWN → CAPTURED) en <code>app.py</code></li>
+          <li><span class="task-bullet" style="color:var(--accent4)"></span>Renderizar cuenta regresiva 3–2–1 centrada con halo y estilo llamativo</li>
+          <li><span class="task-bullet" style="color:var(--accent4)"></span>Implementar <code>save_clean_capture()</code>: frame puro + stickers, sin UI de control</li>
+          <li><span class="task-bullet" style="color:var(--accent4)"></span>Efecto de flash blanco con fade para confirmar captura al usuario</li>
+        </ul>
+        <div class="tl-files" style="margin-top:14px;">
+          <span class="tl-file">app.py</span>
+          <span class="tl-file">captures/</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-left">
+        <span class="phase-number">FASE 05</span>
+        <span class="phase-label" style="color:var(--accent5);">Pulido &amp; QA</span>
+        <span class="phase-duration" style="border-color:rgba(239,68,68,0.3); color:var(--accent5);">3–4 días</span>
+      </div>
+      <div class="phase-right">
+        <ul class="phase-tasks">
+          <li><span class="task-bullet" style="color:var(--accent5)"></span>Profiling: identificar y resolver cuellos de botella de FPS</li>
+          <li><span class="task-bullet" style="color:var(--accent5)"></span>Pruebas con distintas condiciones de iluminación y distancias de cámara</li>
+          <li><span class="task-bullet" style="color:var(--accent5)"></span>Ajustar umbrales de gestos y frames de dwell según UX real</li>
+          <li><span class="task-bullet" style="color:var(--accent5)"></span>Documentar README con instrucciones de instalación con uv y uso</li>
+        </ul>
+        <div class="tl-files" style="margin-top:14px;">
+          <span class="tl-file">README.md</span>
+          <span class="tl-file">tests/</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══════ 8. REQUIREMENTS ═══════ -->
+<section>
+  <div class="section-eyebrow">08 — Requisitos</div>
+  <h2 class="section-title">Tabla de Funcionalidades</h2>
+
+  <table class="req-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Funcionalidad</th>
+        <th>Módulo</th>
+        <th>Prioridad</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>RF-01</td>
+        <td>Captura de video fluida, espejada, a 30 FPS</td>
+        <td>app.py</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-02</td>
+        <td>Alpha blending sin artefactos de borde sobre canal PNG</td>
+        <td>vision_engine</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-03</td>
+        <td>Detección de 21 landmarks de mano en tiempo real</td>
+        <td>vision_engine</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-04</td>
+        <td>Clasificación de gestos PEACE / POINTING</td>
+        <td>vision_engine</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-05</td>
+        <td>Franja <strong>superior</strong> con 4 stickers por página (thumbnails pre-calculados)</td>
+        <td>ui_manager</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-06</td>
+        <td>Botones prev/next con lógica de dwell de 12 frames (~0.4 s)</td>
+        <td>ui_manager</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-07</td>
+        <td>Stickers arrastrables a cualquier coordenada de pantalla</td>
+        <td>ui_manager</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-08</td>
+        <td>Cuenta regresiva 3-2-1 renderizada prominentemente</td>
+        <td>app.py</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-09</td>
+        <td>Captura limpia: frame + stickers, sin controles de UI</td>
+        <td>app.py</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-10</td>
+        <td>Flash visual de confirmación de captura</td>
+        <td>app.py</td>
+        <td><span class="priority p-med">MEDIA</span></td>
+      </tr>
+      <tr>
+        <td>RF-11</td>
+        <td>Barra de progreso visual en botones durante dwell</td>
+        <td>ui_manager</td>
+        <td><span class="priority p-med">MEDIA</span></td>
+      </tr>
+      <tr>
+        <td>RF-12</td>
+        <td>Soporte para múltiples stickers simultáneos en pantalla</td>
+        <td>ui_manager</td>
+        <td><span class="priority p-med">MEDIA</span></td>
+      </tr>
+      <tr>
+        <td>RF-13</td>
+        <td>Tecla Q para salir limpiamente liberando recursos</td>
+        <td>app.py</td>
+        <td><span class="priority p-low">BAJA</span></td>
+      </tr>
+      <tr>
+        <td>RF-14</td>
+        <td>Nombres de archivo con timestamp en captures/</td>
+        <td>app.py</td>
+        <td><span class="priority p-low">BAJA</span></td>
+      </tr>
+      <tr>
+        <td>RF-15</td>
+        <td>Soporte de stickers SVG via cairosvg (rasterización en memoria)</td>
+        <td>ui_manager</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-16</td>
+        <td>Tinte blanco en todos los stickers (img[..., :3] = 255, alpha preservado)</td>
+        <td>ui_manager</td>
+        <td><span class="priority p-med">MEDIA</span></td>
+      </tr>
+      <tr>
+        <td>RF-17</td>
+        <td>Visualización del esqueleto de mano con draw_landmarks()</td>
+        <td>vision_engine</td>
+        <td><span class="priority p-med">MEDIA</span></td>
+      </tr>
+      <tr>
+        <td>RF-18</td>
+        <td>Logo de footer (kokoa_logo.png) en esquina inferior-derecha — vista en vivo y fotos</td>
+        <td>app.py</td>
+        <td><span class="priority p-med">MEDIA</span></td>
+      </tr>
+      <tr>
+        <td>RF-19</td>
+        <td>PEACE dwell con arco de progreso — 20 frames antes de iniciar countdown</td>
+        <td>app.py</td>
+        <td><span class="priority p-high">ALTA</span></td>
+      </tr>
+      <tr>
+        <td>RF-20</td>
+        <td>Limpiar stickers colocados tras cada captura (clear_stickers)</td>
+        <td>ui_manager</td>
+        <td><span class="priority p-med">MEDIA</span></td>
+      </tr>
+      <tr>
+        <td>RF-21</td>
+        <td>Omitir inferencia MediaPipe en estados COUNTDOWN y CAPTURED</td>
+        <td>app.py</td>
+        <td><span class="priority p-med">MEDIA</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+
+<!-- ═══════ 9. NOTAS ═══════ -->
+<section>
+  <div class="section-eyebrow">09 — Notas Técnicas</div>
+  <h2 class="section-title">Consideraciones Importantes</h2>
+
+  <div class="callout warn">
+    <span class="callout-icon">⚠️</span>
+    <div class="callout-text">
+      <strong>BGR vs BGRA:</strong> OpenCV lee imágenes en BGR por defecto. Los PNGs con transparencia deben cargarse con <code>cv2.IMREAD_UNCHANGED</code> para preservar el canal alpha (canal 3). El alpha blending opera en float32 para evitar overflow y se convierte de vuelta a uint8 solo al escribir en el canvas.
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <span class="callout-icon">🚀</span>
+    <div class="callout-text">
+      <strong>Optimizaciones de FPS implementadas:</strong>
+      <ul style="margin-top:6px; padding-left:18px; color:var(--text-dim); font-size:13.5px; line-height:1.8;">
+        <li><strong>Escala 50% antes de MediaPipe</strong> — <code>MP_DETECT_SCALE=0.5</code> reduce a la mitad los píxeles procesados sin impacto perceptible en la detección de landmarks.</li>
+        <li><strong>Saltar inferencia en COUNTDOWN/CAPTURED</strong> — MediaPipe solo corre en estado IDLE; los otros estados no necesitan tracking de mano.</li>
+        <li><strong>Thumbnails pre-calculados</strong> — <code>UIManager</code> genera versiones thumbnail al init y las reutiliza cada frame, eliminando el <code>cv2.resize</code> por frame.</li>
+        <li><strong>Blend parcial de franja</strong> — <code>render_ui()</code> opera solo sobre las primeras <code>STRIP_HEIGHT</code> filas del frame en vez de copiar el frame completo.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout info">
+    <span class="callout-icon">🔧</span>
+    <div class="callout-text">
+      <strong>Comandos uv esenciales:</strong><br>
+      <code>uv sync</code> — instala dependencias según pyproject.toml<br>
+      <code>uv run python src/app.py</code> — ejecuta en el entorno gestionado<br>
+      <code>uv run pytest tests/</code> — ejecuta tests<br>
+      <code>uv add mediapipe</code> — añade nueva dependencia
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <span class="callout-icon">🎨</span>
+    <div class="callout-text">
+      <strong>Stickers de calidad:</strong> Los PNGs ideales tienen fondo transparente, bordes suavizados (anti-aliased) y resolución mínima de 256×256 px. Se recomienda descargar los logos oficiales desde Wikipedia Commons o los repos oficiales de cada proyecto, que suelen ser SVG convertibles a PNG con Inkscape.
+    </div>
+  </div>
+</section>
+
+
+<footer>
+  Open Source Photo Booth · Plan de Proyecto v2.0 · Python 3.11 + uv + OpenCV + MediaPipe 0.10.9 + cairosvg
+</footer>
+
+</body>
+</html>
