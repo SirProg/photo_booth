@@ -51,6 +51,32 @@ def render_countdown(frame: np.ndarray, n: int) -> None:
     cv2.putText(frame, text, org, font, scale, (0, 230, 255), thick)
 
 
+def _render_debug(
+    frame:  np.ndarray,
+    engine: VisionEngine,
+    hand,
+    fps:    float,
+) -> None:
+    """Overlay the tracking window and rate — press 'd' to tune reach on site."""
+    roi = engine.roi
+    if roi is not None:
+        x1, y1, x2, y2 = roi
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 180, 0), 2)
+
+    if hand is None:
+        status = "SEARCHING"
+    elif hand.stale:
+        status = "COASTING"
+    else:
+        status = f"LOCKED {hand.gesture.name}"
+
+    lines = [f"{fps:4.1f} FPS", status, f"roi={roi}"]
+    for i, text in enumerate(lines):
+        org = (12, 28 + i * 26)
+        cv2.putText(frame, text, org, cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 4)
+        cv2.putText(frame, text, org, cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 180, 0), 1)
+
+
 def save_clean_capture(
     raw_frame: np.ndarray,
     ui:        UIManager,
@@ -70,9 +96,15 @@ def save_clean_capture(
 
 def main() -> None:
     cap = cv2.VideoCapture(0)
+    # MJPG before the resolution request: most UVC webcams only reach 720p30
+    # on MJPG, and fall back to a soft-focus 10 FPS YUYV mode otherwise.
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
     cap.set(cv2.CAP_PROP_FRAME_WIDTH,  FRAME_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS,          TARGET_FPS)
+    # A one-frame buffer keeps the hand position current — a deeper queue makes
+    # the tracker chase where the hand was several frames ago.
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
     engine = VisionEngine()
     ui     = UIManager(STICKER_FILES)
@@ -83,6 +115,9 @@ def main() -> None:
     flash_alpha:     float           = 0.0
     last_raw:        np.ndarray | None = None
     peace_dwell:     int             = 0
+    show_debug:      bool            = False
+    fps:             float           = 0.0
+    last_tick:       float           = time.time()
 
     cv2.namedWindow("Open Source Photo Booth", cv2.WINDOW_NORMAL)
 
@@ -135,6 +170,10 @@ def main() -> None:
                         state           = AppState.COUNTDOWN
                         countdown_start = time.time()
                         peace_dwell     = 0
+                        # No frames reach the engine until IDLE resumes; drop
+                        # the ROI so it re-acquires instead of coasting on a
+                        # pose that is seconds old.
+                        engine.reset()
                 else:
                     peace_dwell = 0
 
@@ -162,10 +201,22 @@ def main() -> None:
         if logo is not None:
             frame = _stamp_logo(frame, logo)
 
+        now       = time.time()
+        dt        = now - last_tick
+        last_tick = now
+        if dt > 0:
+            fps = 0.9 * fps + 0.1 * (1.0 / dt) if fps else 1.0 / dt
+
+        if show_debug:
+            _render_debug(frame, engine, hand, fps)
+
         cv2.imshow("Open Source Photo Booth", frame)
 
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
             break
+        if key == ord("d"):
+            show_debug = not show_debug
 
     cap.release()
     cv2.destroyAllWindows()

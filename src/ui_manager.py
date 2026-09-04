@@ -119,7 +119,7 @@ class UIManager:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGRA)
         elif img.shape[2] == 3:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
-        img[..., :3] = 255  # tint all pixels white, alpha channel unchanged
+        img[..., :3] = 000  # tint all pixels white, alpha channel unchanged
         return cv2.resize(img, (STICKER_CANVAS_SIZE,) * 2)
 
     def _total_pages(self) -> int:
@@ -190,7 +190,7 @@ class UIManager:
 
         # Rebuild strip background only when frame width changes (e.g. first frame)
         if self._strip_bg is None or self._strip_bg.shape[1] != w:
-            self._strip_bg = np.full((STRIP_HEIGHT, w, 3), (15, 15, 30), dtype=np.uint8)
+            self._strip_bg = np.full((STRIP_HEIGHT, w, 3), (132, 204, 22), dtype=np.uint8)
 
         # Blend only the strip rows — avoids copying the entire frame
         strip_copy = frame[:STRIP_HEIGHT].copy()
